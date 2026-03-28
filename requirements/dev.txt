@@ -1,0 +1,4 @@
+groq
+boto3
+pytest
+moto[dynamodb]
