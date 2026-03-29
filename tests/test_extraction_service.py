@@ -153,6 +153,22 @@ class TestCalendarActions:
         result = extraction_service_with_calendar.process("user_123", "add to calendar")
         assert result == "What event?"
 
+    def test_calendar_add_invalid_date(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        calendar_service.create_event.side_effect = ValueError("Invalid date")
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(
+                action=AgentAction.CALENDAR_ADD,
+                event_summary="Dinner",
+                event_date="tomorrow",
+            )],
+            response="Added!",
+        )
+
+        result = extraction_service_with_calendar.process("user_123", "add dinner tomorrow")
+        assert "didn't look right" in result
+
     def test_calendar_query_with_events(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
         memory_service.get_all_facts.return_value = []

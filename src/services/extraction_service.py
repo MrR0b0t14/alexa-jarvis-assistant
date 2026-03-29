@@ -4,6 +4,7 @@ Flow: classify utterance → execute memory/calendar actions silently → return
 """
 
 from typing import Optional
+from datetime import datetime, timezone
 from models.memory import MemoryFact, CategoryRegistry
 from models.calendar import CalendarEvent
 from models.llm import AgentAction, AgentTaskDecision
@@ -55,11 +56,13 @@ class ExtractionService:
 
         logger.debug("Categories: %s | Facts: %d | Calendar: %s", list(registry.categories.keys()), len(facts), has_calendar)
 
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         prompt = CLASSIFY_PROMPT.format(
             categories=registry.categories,
             memory_context=memory_context,
             utterance=utterance,
             has_calendar=has_calendar,
+            today=today,
         )
         agent_response = self.llm_service.decide_task(prompt)
 
@@ -118,13 +121,17 @@ class ExtractionService:
             return None
 
         logger.info("CALENDAR_ADD: %s on %s", decision.event_summary, decision.event_date)
-        event = CalendarEvent(
-            summary=decision.event_summary,
-            date=decision.event_date,
-            description=f"Created by Jarvis from: {utterance}",
-            duration_hours=24,
-        )
-        self.calendar_service.create_event(event)
+        try:
+            event = CalendarEvent(
+                summary=decision.event_summary,
+                date=decision.event_date,
+                description=f"Created by Jarvis from: {utterance}",
+                duration_hours=24,
+            )
+            self.calendar_service.create_event(event)
+        except (ValueError, Exception) as e:
+            logger.error("Failed to create calendar event: %s", str(e))
+            return f"I couldn't add that to your calendar — the date '{decision.event_date}' didn't look right. Try specifying an exact date."
         return None
 
     def _handle_calendar_query(self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry) -> Optional[str]:
