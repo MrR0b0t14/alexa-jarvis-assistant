@@ -37,6 +37,8 @@ class AgentTaskDecision(BaseModel):
     description: str = Field(default="", alias="category_description")
     event_summary: str = ""
     event_date: str = ""
+    event_time: str = ""
+    event_end_date: str = ""
 
 
 class AgentResponse(BaseModel):

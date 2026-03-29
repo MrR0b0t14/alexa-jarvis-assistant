@@ -120,13 +120,15 @@ class ExtractionService:
             logger.warning("Missing event details: summary=%s date=%s", decision.event_summary, decision.event_date)
             return None
 
-        logger.info("CALENDAR_ADD: %s on %s", decision.event_summary, decision.event_date)
+        logger.info("CALENDAR_ADD: %s on %s at %s", decision.event_summary, decision.event_date, decision.event_time or "all-day")
         try:
+            is_all_day = not decision.event_time
             event = CalendarEvent(
                 summary=decision.event_summary,
                 date=decision.event_date,
+                time=decision.event_time,
                 description=f"Created by Jarvis from: {utterance}",
-                duration_hours=24,
+                duration_hours=24 if is_all_day else 1,
             )
             self.calendar_service.create_event(event)
         except (ValueError, Exception) as e:
@@ -139,8 +141,11 @@ class ExtractionService:
         if not self.calendar_service:
             return "I can't check your calendar because your Google account isn't linked yet. You can link it in the Alexa app."
 
-        logger.info("CALENDAR_QUERY")
-        events = self.calendar_service.get_events()
+        logger.info("CALENDAR_QUERY: %s to %s", decision.event_date or "now", decision.event_end_date or "+7d")
+        events = self.calendar_service.get_events(
+            start_date=decision.event_date,
+            end_date=decision.event_end_date,
+        )
 
         if not events:
             return "Your calendar is clear for the next week."

@@ -31,12 +31,13 @@ class TestCalendarService:
         }
 
         service = CalendarService("fake_token")
-        event = CalendarEvent(summary="Meeting", date="2026-10-15", duration_hours=1)
+        event = CalendarEvent(summary="Meeting", date="2026-10-15", time="10:00", duration_hours=1)
         result = service.create_event(event)
 
         assert result.summary == "Meeting"
         body = mock_service.events.return_value.insert.call_args[1]["body"]
         assert "dateTime" in body["start"]
+        assert "10:00" in body["start"]["dateTime"]
 
     def test_get_events(self, mock_creds, mock_build):
         mock_service = MagicMock()
@@ -49,7 +50,7 @@ class TestCalendarService:
         }
 
         service = CalendarService("fake_token")
-        events = service.get_events(days=7)
+        events = service.get_events(start_date="2026-03-30", end_date="2026-04-01")
 
         assert len(events) == 2
         assert events[0].summary == "Standup"

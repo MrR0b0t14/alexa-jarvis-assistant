@@ -10,12 +10,14 @@ class CalendarEvent(BaseModel):
     Attributes:
         summary: Event title.
         date: Date string in YYYY-MM-DD format.
+        time: Time string in HH:MM 24h format. Empty for all-day events.
         description: Optional event description.
         duration_hours: Duration in hours (default 1). Use 24 for all-day events.
     """
 
     summary: str
     date: str
+    time: str = ""
     description: str = ""
     duration_hours: int = 1
 
