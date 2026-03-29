@@ -3,7 +3,9 @@
 [![CI](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant/branch/mainline/graph/badge.svg)](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant)
 
-A personal AI memory system powered by Alexa, AWS Lambda, and LLMs. Jarvis remembers facts about you, builds a knowledge base over time, and uses that context to have personalized conversations.
+A personal AI memory system powered by Alexa, AWS Lambda, DynamoDB, and LLMs. Jarvis remembers facts about you, builds a knowledge base over time, and uses that context to have personalized conversations.
+
+**Author:** Antonio Battipaglia ([@MrR0b0t14](https://github.com/MrR0b0t14))
 
 ## How It Works
 
@@ -26,19 +28,19 @@ The LLM is selective — it only stores personally relevant information (prefere
 ## Example Interactions
 
 ```
-You:    "Remember that I work at Amazon as a software engineer"
+You:    "Jarvis, remember that I work at Amazon as a software engineer"
 Jarvis: "That's great, you work as a software engineer at Amazon. I'll keep that in mind."
 
-You:    "I want to run a marathon next year"
+You:    "Jarvis, I want to run a marathon next year"
 Jarvis: "That's a great goal! I've taken note of your aspiration."
 
-You:    "What do you know about me?"
+You:    "Jarvis, what do you know about me?"
 Jarvis: "You work as a software engineer at Amazon and your fitness goal is to run a marathon next year."
 
-You:    "I got promoted to SDE2"
+You:    "Jarvis, I got promoted to SDE2"
 Jarvis: "Congratulations on your promotion! I've updated my records."
 
-You:    "Forget everything about my job"
+You:    "Jarvis, forget everything about my job"
 Jarvis: "Done, I've removed your job information."
 ```
 
