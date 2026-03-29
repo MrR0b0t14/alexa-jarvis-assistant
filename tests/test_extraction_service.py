@@ -1,6 +1,7 @@
 import pytest
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 from models.memory import MemoryFact, CategoryRegistry
+from models.calendar import CalendarEvent, CalendarEventResult
 from models.llm import AgentAction, AgentTaskDecision, AgentResponse
 from services.extraction_service import ExtractionService
 
@@ -16,8 +17,18 @@ def llm_service():
 
 
 @pytest.fixture
+def calendar_service():
+    return MagicMock()
+
+
+@pytest.fixture
 def extraction_service(memory_service, llm_service):
     return ExtractionService(memory_service, llm_service)
+
+
+@pytest.fixture
+def extraction_service_with_calendar(memory_service, llm_service, calendar_service):
+    return ExtractionService(memory_service, llm_service, calendar_service)
 
 
 class TestExtractionServiceProcess:
@@ -97,3 +108,86 @@ class TestExtractionServiceProcess:
         prompt_arg = llm_service.decide_task.call_args[0][0]
         assert "employment" in prompt_arg
         assert "hello" in prompt_arg
+
+
+class TestCalendarActions:
+    def test_calendar_add_with_service(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(
+                action=AgentAction.CALENDAR_ADD,
+                event_summary="Trip to China",
+                event_date="2026-10-15",
+            )],
+            response="Added your China trip to the calendar!",
+        )
+
+        result = extraction_service_with_calendar.process("user_123", "Add my China trip to the calendar on October 15th")
+        assert result == "Added your China trip to the calendar!"
+        calendar_service.create_event.assert_called_once()
+
+    def test_calendar_add_without_service(self, extraction_service, memory_service, llm_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(
+                action=AgentAction.CALENDAR_ADD,
+                event_summary="Trip",
+                event_date="2026-10-15",
+            )],
+            response="Sure!",
+        )
+
+        result = extraction_service.process("user_123", "Add trip to calendar")
+        assert "isn't linked" in result
+
+    def test_calendar_add_missing_details(self, extraction_service_with_calendar, memory_service, llm_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.CALENDAR_ADD)],
+            response="What event?",
+        )
+
+        result = extraction_service_with_calendar.process("user_123", "add to calendar")
+        assert result == "What event?"
+
+    def test_calendar_query_with_events(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        calendar_service.get_events.return_value = [
+            CalendarEventResult(summary="Team standup", date="2026-03-30"),
+            CalendarEventResult(summary="Dentist", date="2026-04-01"),
+        ]
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.CALENDAR_QUERY)],
+            response="Let me check...",
+        )
+
+        result = extraction_service_with_calendar.process("user_123", "What's on my calendar?")
+        assert "Team standup" in result
+        assert "Dentist" in result
+
+    def test_calendar_query_empty(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        calendar_service.get_events.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.CALENDAR_QUERY)],
+            response="Let me check...",
+        )
+
+        result = extraction_service_with_calendar.process("user_123", "What's on my calendar?")
+        assert "clear" in result
+
+    def test_calendar_query_without_service(self, extraction_service, memory_service, llm_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.CALENDAR_QUERY)],
+            response="Let me check...",
+        )
+
+        result = extraction_service.process("user_123", "What's on my calendar?")
+        assert "isn't linked" in result

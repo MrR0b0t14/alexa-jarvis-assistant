@@ -5,40 +5,45 @@ from pydantic import BaseModel, Field
 
 
 class AgentAction(Enum):
-    """Possible memory side-effects the LLM can trigger.
+    """Possible side-effects the LLM can trigger.
 
     STORE: Save or update a memory fact.
     DELETE: Remove an entire memory category.
+    CALENDAR_ADD: Add an event to Google Calendar.
+    CALENDAR_QUERY: Retrieve upcoming calendar events.
     """
 
     STORE = "STORE"
     DELETE = "DELETE"
+    CALENDAR_ADD = "CALENDAR_ADD"
+    CALENDAR_QUERY = "CALENDAR_QUERY"
 
 
 class AgentTaskDecision(BaseModel):
-    """A single memory operation extracted from user input.
+    """A single action extracted from user input.
 
     Attributes:
-        action: Whether to store or delete.
-        category: The memory category this relates to.
-        description: Short description of the category (used when creating new ones).
+        action: The action type.
+        category: The memory category (for STORE/DELETE).
+        description: Short description of the category.
+        event_summary: Event title (for CALENDAR_ADD).
+        event_date: Event date in YYYY-MM-DD (for CALENDAR_ADD).
     """
 
     model_config = {"populate_by_name": True}
 
     action: AgentAction
-    category: str
-    description: str = Field(alias="category_description")
+    category: str = ""
+    description: str = Field(default="", alias="category_description")
+    event_summary: str = ""
+    event_date: str = ""
 
 
 class AgentResponse(BaseModel):
-    """Full LLM decision: zero or more memory actions + a conversational response.
-
-    The LLM always produces a response. Memory actions are optional side-effects
-    that happen silently in the background.
+    """Full LLM decision: zero or more actions + a conversational response.
 
     Attributes:
-        actions: List of memory operations to execute (can be empty).
+        actions: List of actions to execute (can be empty).
         response: Conversational response to speak back to the user.
     """
 

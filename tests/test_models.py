@@ -160,3 +160,56 @@ class TestAgentResponse:
         resp = AgentResponse.model_validate(data)
         assert resp.actions[0].action == AgentAction.STORE
         assert resp.actions[1].action == AgentAction.DELETE
+
+
+    def test_calendar_add_action(self):
+        data = {
+            "actions": [
+                {"action": "CALENDAR_ADD", "event_summary": "Trip to China", "event_date": "2026-10-15"},
+            ],
+            "response": "Added!",
+        }
+        resp = AgentResponse.model_validate(data)
+        assert resp.actions[0].action == AgentAction.CALENDAR_ADD
+        assert resp.actions[0].event_summary == "Trip to China"
+        assert resp.actions[0].event_date == "2026-10-15"
+
+    def test_calendar_query_action(self):
+        data = {
+            "actions": [{"action": "CALENDAR_QUERY"}],
+            "response": "Let me check...",
+        }
+        resp = AgentResponse.model_validate(data)
+        assert resp.actions[0].action == AgentAction.CALENDAR_QUERY
+
+
+class TestCalendarModels:
+    def test_calendar_event_result_from_google_date(self):
+        from models.calendar import CalendarEventResult
+        event = {"summary": "Dentist", "start": {"date": "2026-04-01"}}
+        result = CalendarEventResult.from_google(event)
+        assert result.summary == "Dentist"
+        assert result.date == "2026-04-01"
+
+    def test_calendar_event_result_from_google_datetime(self):
+        from models.calendar import CalendarEventResult
+        event = {"summary": "Meeting", "start": {"dateTime": "2026-04-01T10:00:00Z"}}
+        result = CalendarEventResult.from_google(event)
+        assert result.summary == "Meeting"
+        assert result.date == "2026-04-01"
+
+    def test_calendar_event_result_from_google_missing_summary(self):
+        from models.calendar import CalendarEventResult
+        event = {"start": {"date": "2026-04-01"}}
+        result = CalendarEventResult.from_google(event)
+        assert result.summary == "Untitled"
+
+    def test_calendar_event_is_all_day(self):
+        from models.calendar import CalendarEvent
+        event = CalendarEvent(summary="Trip", date="2026-10-15", duration_hours=24)
+        assert event.is_all_day is True
+
+    def test_calendar_event_is_not_all_day(self):
+        from models.calendar import CalendarEvent
+        event = CalendarEvent(summary="Meeting", date="2026-10-15", duration_hours=1)
+        assert event.is_all_day is False

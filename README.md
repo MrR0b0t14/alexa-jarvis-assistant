@@ -3,7 +3,7 @@
 [![CI](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant/branch/mainline/graph/badge.svg)](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant)
 
-A personal AI memory system powered by Alexa, AWS Lambda, DynamoDB, and LLMs. Jarvis remembers facts about you, builds a knowledge base over time, and uses that context to have personalized conversations.
+A personal AI memory system powered by Alexa, AWS Lambda, DynamoDB, and LLMs. Jarvis remembers facts about you, builds a knowledge base over time, and uses that context to have personalized conversations. Optionally integrates with Google Calendar to manage your schedule.
 
 **Author:** Antonio Battipaglia ([@MrR0b0t14](https://github.com/MrR0b0t14))
 
@@ -13,15 +13,18 @@ A personal AI memory system powered by Alexa, AWS Lambda, DynamoDB, and LLMs. Ja
 User speaks → Alexa → Lambda → LLM classifies intent + responds
                                   ↓ (silently)
                               STORE/DELETE facts in DynamoDB
+                              ADD/QUERY events in Google Calendar
 ```
 
-1. You say something to Alexa (e.g., "remember that I work at Amazon")
+1. You say something to Alexa (e.g., "Jarvis, remember that I work at Amazon")
 2. The LLM analyzes your input and decides what to do:
    - **STORE**: Extract and save relevant facts to DynamoDB
    - **DELETE**: Remove facts you want forgotten
+   - **CALENDAR_ADD**: Create a Google Calendar event
+   - **CALENDAR_QUERY**: Retrieve upcoming events
    - **No action**: Just respond conversationally
 3. The LLM always responds naturally, using your stored memory as context
-4. Multiple facts can be extracted from a single utterance
+4. Multiple actions can be extracted from a single utterance
 
 The LLM is selective — it only stores personally relevant information (preferences, goals, job, relationships) and ignores trivial or transient input.
 
@@ -42,6 +45,12 @@ Jarvis: "Congratulations on your promotion! I've updated my records."
 
 You:    "Jarvis, forget everything about my job"
 Jarvis: "Done, I've removed your job information."
+
+You:    "Jarvis, add my trip to China on October 15th to the calendar"
+Jarvis: "Done, I've added your China trip to your calendar for October 15th."
+
+You:    "Jarvis, what's on my calendar this week?"
+Jarvis: "Here's what's coming up: Team standup on 2026-03-30. Dentist on 2026-04-01."
 ```
 
 ## Architecture
@@ -50,6 +59,7 @@ Jarvis: "Done, I've removed your job information."
 - **AWS Lambda** (Python 3.14): Handles Alexa requests, orchestrates the pipeline
 - **DynamoDB**: Stores memory facts and category registry per user
 - **Groq API**: LLM inference (Llama 3.3 70B) for classification, fact rewriting, and conversation
+- **Google Calendar API**: Event creation and retrieval via OAuth2 Account Linking
 - **GitHub Actions**: CI with mypy, pytest, and Codecov
 
 ### Data Model (DynamoDB)
@@ -70,6 +80,7 @@ Each category holds a single consolidated fact that the LLM rewrites on every up
 - AWS account (free tier works)
 - [Groq API key](https://console.groq.com) (free tier)
 - [Alexa Developer account](https://developer.amazon.com/alexa/console/ask)
+- [Google Cloud account](https://console.cloud.google.com) (optional, for calendar integration)
 
 ## AWS Infrastructure Setup
 
@@ -129,9 +140,58 @@ In the [Alexa Developer Console](https://developer.amazon.com/alexa/console/ask)
   tell me {freeText}
   I think {freeText}
   I want {freeText}
+  Jarvis {freeText}
   hey {freeText}
   ```
 - Point the skill endpoint to your Lambda function ARN
+
+## Google Calendar Setup (Optional)
+
+To enable calendar integration, you need to set up OAuth2 Account Linking between Alexa and Google.
+
+### 1. Google Cloud Project
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create a new project (or use an existing one)
+3. Go to **APIs & Services** → **Library** → search "Google Calendar API" → **Enable**
+4. Go to **APIs & Services** → **OAuth consent screen**:
+   - User type: **External**
+   - App name: "Jarvis Assistant"
+   - Add your email as a test user
+5. Go to **APIs & Services** → **Credentials** → **Create Credentials** → **OAuth 2.0 Client ID**:
+   - Application type: **Web application**
+   - Authorized redirect URIs — add all three:
+     ```
+     https://layla.amazon.com/api/skill/link/<YOUR_VENDOR_ID>
+     https://alexa.amazon.co.jp/api/skill/link/<YOUR_VENDOR_ID>
+     https://pitangui.amazon.com/api/skill/link/<YOUR_VENDOR_ID>
+     ```
+   - You can find your Vendor ID in the Alexa Developer Console under Account Linking
+6. Save the **Client ID** and **Client Secret**
+
+### 2. Alexa Account Linking
+
+In the [Alexa Developer Console](https://developer.amazon.com/alexa/console/ask):
+1. Go to your skill → **Build** → **Account Linking**
+2. Toggle account linking **On**
+3. Fill in:
+   - **Authorization URI**: `https://accounts.google.com/o/oauth2/v2/auth`
+   - **Access Token URI**: `https://oauth2.googleapis.com/token`
+   - **Client ID**: your Google OAuth client ID
+   - **Client Secret**: your Google OAuth client secret
+   - **Client Authentication Scheme**: HTTP Basic
+   - **Scopes**:
+     ```
+     https://www.googleapis.com/auth/calendar
+     https://www.googleapis.com/auth/calendar.events
+     ```
+4. Save and rebuild the skill
+
+### 3. Link Your Account
+
+Open the Alexa app on your phone → Skills → Your Skills → Jarvis Assistant → Settings → **Link Account**. You'll be redirected to Google to grant calendar access.
+
+If the account is not linked, Jarvis will still work for memory features — calendar actions will be gracefully skipped with a message asking you to link your account.
 
 ## Local Development
 
@@ -197,14 +257,16 @@ src/
     logger.py               # Centralized logging configuration
   models/
     memory.py               # MemoryFact and CategoryRegistry dataclasses
+    calendar.py             # CalendarEvent and CalendarEventResult (pydantic)
     llm.py                  # AgentAction, AgentTaskDecision, AgentResponse (pydantic)
   services/
-    extraction_service.py   # Orchestrates classify → store/delete → respond pipeline
+    extraction_service.py   # Orchestrates classify → store/delete/calendar → respond
     memory_service.py       # DynamoDB read/write operations
     llm_service.py          # Groq LLM API integration
+    calendar_service.py     # Google Calendar API integration
   utils/
     response.py             # Alexa response builder
-tests/                      # Unit tests with mocked DynamoDB and LLM
+tests/                      # Unit tests with mocked DynamoDB, LLM, and Calendar
 scripts/
   test_integration.py       # Manual E2E integration test
 requirements/
@@ -218,11 +280,12 @@ requirements/
 - **Carrier phrases required**: `AMAZON.SearchQuery` requires at least one carrier word in utterances (e.g., "tell me", "I think"). Bare free-form input is not supported by Alexa.
 - **No conversation history**: Each utterance is stateless within a session. The LLM doesn't know what you said 30 seconds ago — only what's in long-term memory.
 - **Single LLM model**: Currently uses Llama 3.3 70B for everything. A smaller model for classification could improve speed.
+- **Google OAuth token expiry**: Access tokens from Alexa Account Linking may expire. If calendar calls fail, the user may need to re-link their account.
 
 ## Roadmap
 
 - [ ] **Session memory**: Multi-turn conversation context using Alexa session attributes
-- [ ] **Google Calendar integration**: Automatically create calendar events from stored goals and plans
 - [ ] **Faster responses**: Use a smaller model (Llama 3.1 8B) for classification, keep 70B for conversation
 - [ ] **Auto-deploy**: GitHub Actions workflow to deploy on merge to mainline
 - [ ] **Reprompt**: Keep the Alexa session alive between turns
+- [ ] **Calendar event confirmation**: Ask user before creating events from auto-detected plans
