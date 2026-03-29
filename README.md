@@ -4,7 +4,7 @@ A personal AI memory system powered by Alexa, AWS Lambda, and LLMs. Jarvis remem
 
 ## Prerequisites
 
-- Python 3.10+
+- Python 3.14+
 - AWS account (free tier)
 - [Groq API key](https://console.groq.com) (free tier)
 
