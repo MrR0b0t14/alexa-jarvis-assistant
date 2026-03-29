@@ -11,8 +11,8 @@ A personal AI memory system powered by Alexa, AWS Lambda, and LLMs. Jarvis remem
 ## Setup
 
 ```bash
-git clone git@github.com:MrR0b0t14/alexa-jarvis-assistent.git
-cd alexa-jarvis-assistent
+git clone git@github.com:MrR0b0t14/alexa-jarvis-assistant.git
+cd alexa-jarvis-assistant
 
 python3 -m venv .venv
 source .venv/bin/activate
