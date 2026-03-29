@@ -1,6 +1,7 @@
 import json
 import pytest
 from models.memory import MemoryFact, CategoryRegistry
+from models.llm import AgentAction, AgentTaskDecision
 
 
 class TestMemoryFact:
@@ -80,3 +81,49 @@ class TestCategoryRegistry:
         item = reg.to_dynamo()
         restored = CategoryRegistry.from_dynamo(item)
         assert restored.categories == reg.categories
+
+
+class TestAgentAction:
+    def test_store_action(self):
+        assert AgentAction("STORE") == AgentAction.STORE
+
+    def test_delete_action(self):
+        assert AgentAction("DELETE") == AgentAction.DELETE
+
+    def test_chat_action(self):
+        assert AgentAction("CHAT") == AgentAction.CHAT
+
+    def test_invalid_action(self):
+        with pytest.raises(ValueError):
+            AgentAction("INVALID")
+
+
+class TestAgentTaskDecision:
+    def test_from_agent(self):
+        response = {
+            "action": "STORE",
+            "category": "employment",
+            "category_description": "Jobs and roles",
+        }
+        decision = AgentTaskDecision.from_agent(response)
+        assert decision.action == AgentAction.STORE
+        assert decision.category == "employment"
+        assert decision.description == "Jobs and roles"
+
+    def test_from_agent_chat(self):
+        response = {
+            "action": "CHAT",
+            "category": "",
+            "category_description": "",
+        }
+        decision = AgentTaskDecision.from_agent(response)
+        assert decision.action == AgentAction.CHAT
+
+    def test_from_agent_invalid_action(self):
+        response = {
+            "action": "UNKNOWN",
+            "category": "test",
+            "category_description": "test",
+        }
+        with pytest.raises(ValueError):
+            AgentTaskDecision.from_agent(response)

@@ -4,3 +4,4 @@ __pycache__/
 lambda.zip
 .venv/
 keys/
+.coverage
