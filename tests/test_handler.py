@@ -29,6 +29,7 @@ class TestLambdaHandler:
         result = lambda_handler(_alexa_event("LaunchRequest"), None)
         assert result["response"]["outputSpeech"]["text"] == LAUNCH_MSG
         assert result["response"]["shouldEndSession"] is False
+        assert result["response"]["reprompt"]["outputSpeech"]["text"] == "I'm listening."
 
     @patch("handler._build_extraction_service")
     def test_log_activity_intent(self, mock_build):

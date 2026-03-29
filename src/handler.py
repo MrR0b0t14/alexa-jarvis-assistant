@@ -87,7 +87,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         user_id = event["session"]["user"]["userId"]
 
         if request_type == "LaunchRequest":
-            return build_response(LAUNCH_MSG)
+            return build_response(LAUNCH_MSG, reprompt="I'm listening.")
 
         elif request_type == "IntentRequest":
             intent = event["request"]["intent"]["name"]
@@ -97,16 +97,16 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 logger.info("User %s said: %s", user_id, utterance)
                 extraction_service = _build_extraction_service(event)
                 response = extraction_service.process(user_id, utterance)
-                return build_response(response)
+                return build_response(response, reprompt="Anything else?")
 
             elif intent in ["AMAZON.StopIntent", "AMAZON.CancelIntent"]:
                 return build_response("See you later.", end_session=True)
 
             elif intent == "AMAZON.HelpIntent":
-                return build_response(HELP_MSG)
+                return build_response(HELP_MSG, reprompt="Go ahead, I'm listening.")
 
             elif intent == "AMAZON.FallbackIntent":
-                return build_response(FALLBACK_MSG)
+                return build_response(FALLBACK_MSG, reprompt="I'm still here.")
 
         return build_response("I didn't catch that.")
 
