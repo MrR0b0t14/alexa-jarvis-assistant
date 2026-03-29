@@ -14,6 +14,23 @@ logger = get_logger(__name__)
 
 _extraction_service: Optional[ExtractionService] = None
 
+LAUNCH_MSG = (
+    "Hey, I'm Jarvis, your personal AI assistant with memory. "
+    "You can tell me things about yourself and I'll remember them. "
+    "Start every message with Jarvis. For example: Jarvis, remember that I work at Amazon."
+)
+
+HELP_MSG = (
+    "I can remember facts about you and use them in our conversations. "
+    "Try things like: remember that I love pizza, I want to learn guitar, "
+    "or ask me what I know about you. Say forget to remove something."
+)
+
+FALLBACK_MSG = (
+    "I didn't quite catch that. Try starting with a phrase like: "
+    "Jarvis, tell me, remember that, or I think."
+)
+
 
 def _get_extraction_service() -> ExtractionService:
     """Lazily initializes and returns the extraction service.
@@ -45,7 +62,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         user_id = event["session"]["user"]["userId"]
 
         if request_type == "LaunchRequest":
-            return build_response("Hey, I'm Jarvis. Talk to me.")
+            return build_response(LAUNCH_MSG)
 
         elif request_type == "IntentRequest":
             intent = event["request"]["intent"]["name"]
@@ -60,7 +77,10 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 return build_response("See you later.", end_session=True)
 
             elif intent == "AMAZON.HelpIntent":
-                return build_response("Just talk to me. I'll remember what matters.")
+                return build_response(HELP_MSG)
+
+            elif intent == "AMAZON.FallbackIntent":
+                return build_response(FALLBACK_MSG)
 
         return build_response("I didn't catch that.")
 

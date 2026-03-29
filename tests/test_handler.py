@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from handler import lambda_handler, _get_extraction_service
+from handler import lambda_handler, _get_extraction_service, LAUNCH_MSG, HELP_MSG, FALLBACK_MSG
 import handler
 
 
@@ -24,7 +24,7 @@ def _alexa_event(intent: str, text: str = "", user_id: str = "test_user") -> dic
 class TestLambdaHandler:
     def test_launch_request(self):
         result = lambda_handler(_alexa_event("LaunchRequest"), None)
-        assert "Jarvis" in result["response"]["outputSpeech"]["text"]
+        assert result["response"]["outputSpeech"]["text"] == LAUNCH_MSG
         assert result["response"]["shouldEndSession"] is False
 
     @patch("handler._get_extraction_service")
@@ -44,7 +44,11 @@ class TestLambdaHandler:
 
     def test_help_intent(self):
         result = lambda_handler(_alexa_event("AMAZON.HelpIntent"), None)
-        assert "talk to me" in result["response"]["outputSpeech"]["text"].lower()
+        assert result["response"]["outputSpeech"]["text"] == HELP_MSG
+
+    def test_fallback_intent(self):
+        result = lambda_handler(_alexa_event("AMAZON.FallbackIntent"), None)
+        assert result["response"]["outputSpeech"]["text"] == FALLBACK_MSG
 
     def test_unknown_request_type(self):
         event = {
