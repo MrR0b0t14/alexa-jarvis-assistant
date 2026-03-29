@@ -99,31 +99,31 @@ class TestAgentAction:
 
 
 class TestAgentTaskDecision:
-    def test_from_agent(self):
+    def test_model_validate(self):
         response = {
             "action": "STORE",
             "category": "employment",
             "category_description": "Jobs and roles",
         }
-        decision = AgentTaskDecision.from_agent(response)
+        decision = AgentTaskDecision.model_validate(response)
         assert decision.action == AgentAction.STORE
         assert decision.category == "employment"
         assert decision.description == "Jobs and roles"
 
-    def test_from_agent_chat(self):
+    def test_model_validate_chat(self):
         response = {
             "action": "CHAT",
             "category": "",
             "category_description": "",
         }
-        decision = AgentTaskDecision.from_agent(response)
+        decision = AgentTaskDecision.model_validate(response)
         assert decision.action == AgentAction.CHAT
 
-    def test_from_agent_invalid_action(self):
+    def test_model_validate_invalid_action(self):
         response = {
             "action": "UNKNOWN",
             "category": "test",
             "category_description": "test",
         }
         with pytest.raises(ValueError):
-            AgentTaskDecision.from_agent(response)
+            AgentTaskDecision.model_validate(response)

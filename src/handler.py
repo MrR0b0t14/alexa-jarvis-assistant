@@ -1,7 +1,9 @@
+from typing import Any
 from intents.log_intent import handle_log_intent
 from utils.response import build_response
 
-def lambda_handler(event, context):
+
+def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     try:
         request_type = event['request']['type']
 

@@ -1,21 +1,14 @@
-from dataclasses import dataclass
 from enum import Enum
+from pydantic import BaseModel, Field
 
 class AgentAction(Enum):
     STORE = "STORE"
     DELETE = "DELETE"
     CHAT = "CHAT"
 
-@dataclass
-class AgentTaskDecision:
+class AgentTaskDecision(BaseModel):
+    model_config = {"populate_by_name": True}    
+    
     action: AgentAction
     category: str
-    description: str
-
-    @classmethod
-    def from_agent(cls, response):
-        return cls(
-            action=AgentAction(response["action"]),
-            category=response["category"],
-            description=response["category_description"]
-        )
+    description: str = Field(alias="category_description")

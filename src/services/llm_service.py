@@ -1,11 +1,12 @@
 import json
+from typing import Any
 from models.llm import AgentTaskDecision
 
 MODEL = "llama-3.3-70b-versatile"
 
 
 class LlmService:
-    def __init__(self, client):
+    def __init__(self, client: Any) -> None:
         self.client = client
 
     def call_llm(self, prompt: str) -> str:
@@ -15,10 +16,11 @@ class LlmService:
             temperature=0.3,
             max_tokens=500,
         )
-        return response.choices[0].message.content.strip()
+        content: str = response.choices[0].message.content.strip()
+        return content
 
     def decide_task(self, prompt: str) -> AgentTaskDecision:
         raw = self.call_llm(prompt)
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[1].rsplit("```", 1)[0]
-        return AgentTaskDecision.from_agent(json.loads(raw))
+        return AgentTaskDecision.model_validate(json.loads(raw))

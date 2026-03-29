@@ -1,31 +1,31 @@
-import json
+from typing import Any, Optional
 from models.memory import MemoryFact, CategoryRegistry
 
 TABLE_NAME = "user_memory"
 
 
 class MemoryService:
-    def __init__(self, table):
+    def __init__(self, table: Any) -> None:
         self.table = table
 
-    def get_categories(self, user_id):
+    def get_categories(self, user_id: str) -> CategoryRegistry:
         resp = self.table.get_item(Key={"user_id": user_id, "category": CategoryRegistry.METADATA_SK})
         item = resp.get("Item")
         if not item:
             return CategoryRegistry(user_id=user_id)
         return CategoryRegistry.from_dynamo(item)
 
-    def save_categories(self, registry):
+    def save_categories(self, registry: CategoryRegistry) -> None:
         self.table.put_item(Item=registry.to_dynamo())
 
-    def get_fact(self, user_id, category):
+    def get_fact(self, user_id: str, category: str) -> Optional[MemoryFact]:
         resp = self.table.get_item(Key={"user_id": user_id, "category": category})
         item = resp.get("Item")
         if not item:
             return None
         return MemoryFact.from_dynamo(item)
 
-    def get_all_facts(self, user_id):
+    def get_all_facts(self, user_id: str) -> list[MemoryFact]:
         resp = self.table.query(
             KeyConditionExpression="user_id = :uid",
             ExpressionAttributeValues={":uid": user_id},
@@ -36,8 +36,8 @@ class MemoryService:
             if i["category"] != CategoryRegistry.METADATA_SK
         ]
 
-    def save_fact(self, fact):
+    def save_fact(self, fact: MemoryFact) -> None:
         self.table.put_item(Item=fact.to_dynamo())
 
-    def delete_fact(self, user_id, category):
+    def delete_fact(self, user_id: str, category: str) -> None:
         self.table.delete_item(Key={"user_id": user_id, "category": category})

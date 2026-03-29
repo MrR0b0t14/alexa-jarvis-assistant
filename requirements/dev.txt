@@ -3,3 +3,5 @@ boto3
 pytest
 pytest-cov
 moto[dynamodb]
+mypy
+boto3-stubs[dynamodb]

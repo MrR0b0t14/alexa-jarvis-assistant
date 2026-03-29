@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any
 import json
 
 
@@ -12,7 +12,7 @@ class MemoryFact:
     source_utterance: str
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-    def to_dynamo(self):
+    def to_dynamo(self) -> dict[str, str]:
         return {
             "user_id": self.user_id,
             "category": self.category,
@@ -22,7 +22,7 @@ class MemoryFact:
         }
 
     @classmethod
-    def from_dynamo(cls, item):
+    def from_dynamo(cls, item: dict[str, Any]) -> "MemoryFact":
         return cls(
             user_id=item["user_id"],
             category=item["category"],
@@ -35,12 +35,12 @@ class MemoryFact:
 @dataclass
 class CategoryRegistry:
     user_id: str
-    categories: dict = field(default_factory=dict)
+    categories: dict[str, str] = field(default_factory=dict)
     updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-    METADATA_SK = "metadata#categories"
+    METADATA_SK: str = "metadata#categories"
 
-    def to_dynamo(self):
+    def to_dynamo(self) -> dict[str, str]:
         return {
             "user_id": self.user_id,
             "category": self.METADATA_SK,
@@ -49,16 +49,16 @@ class CategoryRegistry:
         }
 
     @classmethod
-    def from_dynamo(cls, item):
+    def from_dynamo(cls, item: dict[str, Any]) -> "CategoryRegistry":
         return cls(
             user_id=item["user_id"],
             categories=json.loads(item["value"]),
             updated_at=item.get("updated_at", ""),
         )
 
-    def add(self, name, description):
+    def add(self, name: str, description: str) -> None:
         self.categories[name] = description
         self.updated_at = datetime.now(timezone.utc).isoformat()
 
-    def has(self, name):
+    def has(self, name: str) -> bool:
         return name in self.categories
