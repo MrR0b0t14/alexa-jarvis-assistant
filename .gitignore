@@ -5,3 +5,4 @@ lambda.zip
 .venv/
 keys/
 .coverage
+.vscode/

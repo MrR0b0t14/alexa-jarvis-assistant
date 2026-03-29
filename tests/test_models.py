@@ -1,7 +1,7 @@
 import json
 import pytest
 from models.memory import MemoryFact, CategoryRegistry
-from models.llm import AgentAction, AgentTaskDecision
+from models.llm import AgentAction, AgentTaskDecision, AgentResponse
 
 
 class TestMemoryFact:
@@ -90,9 +90,6 @@ class TestAgentAction:
     def test_delete_action(self):
         assert AgentAction("DELETE") == AgentAction.DELETE
 
-    def test_chat_action(self):
-        assert AgentAction("CHAT") == AgentAction.CHAT
-
     def test_invalid_action(self):
         with pytest.raises(ValueError):
             AgentAction("INVALID")
@@ -110,14 +107,11 @@ class TestAgentTaskDecision:
         assert decision.category == "employment"
         assert decision.description == "Jobs and roles"
 
-    def test_model_validate_chat(self):
-        response = {
-            "action": "CHAT",
-            "category": "",
-            "category_description": "",
-        }
-        decision = AgentTaskDecision.model_validate(response)
-        assert decision.action == AgentAction.CHAT
+    def test_model_validate_with_field_name(self):
+        decision = AgentTaskDecision(
+            action=AgentAction.DELETE, category="goal", description="Personal goals"
+        )
+        assert decision.action == AgentAction.DELETE
 
     def test_model_validate_invalid_action(self):
         response = {
@@ -127,3 +121,42 @@ class TestAgentTaskDecision:
         }
         with pytest.raises(ValueError):
             AgentTaskDecision.model_validate(response)
+
+
+class TestAgentResponse:
+    def test_with_actions(self):
+        data = {
+            "actions": [
+                {"action": "STORE", "category": "employment", "category_description": "Jobs"},
+                {"action": "STORE", "category": "goal", "category_description": "Goals"},
+            ],
+            "response": "Nice, got it!",
+        }
+        resp = AgentResponse.model_validate(data)
+        assert len(resp.actions) == 2
+        assert resp.actions[0].category == "employment"
+        assert resp.actions[1].category == "goal"
+        assert resp.response == "Nice, got it!"
+
+    def test_empty_actions(self):
+        data = {"actions": [], "response": "Just chatting!"}
+        resp = AgentResponse.model_validate(data)
+        assert resp.actions == []
+        assert resp.response == "Just chatting!"
+
+    def test_no_actions_field_defaults_to_empty(self):
+        data = {"response": "Hello!"}
+        resp = AgentResponse.model_validate(data)
+        assert resp.actions == []
+
+    def test_mixed_actions(self):
+        data = {
+            "actions": [
+                {"action": "STORE", "category": "employment", "category_description": "Jobs"},
+                {"action": "DELETE", "category": "health", "category_description": "Health"},
+            ],
+            "response": "Updated!",
+        }
+        resp = AgentResponse.model_validate(data)
+        assert resp.actions[0].action == AgentAction.STORE
+        assert resp.actions[1].action == AgentAction.DELETE

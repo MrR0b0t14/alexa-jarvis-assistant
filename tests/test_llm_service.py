@@ -4,7 +4,7 @@ from services.llm_service import LlmService
 from models.llm import AgentAction
 
 
-def _mock_client(content):
+def _mock_client(content: str) -> MagicMock:
     client = MagicMock()
     message = MagicMock()
     message.content = content
@@ -29,41 +29,45 @@ class TestLlmService:
         service = LlmService(client)
         assert service.call_llm("test") == "some response"
 
-    def test_decide_task_store(self):
+    def test_decide_task_with_actions(self):
         response_json = json.dumps({
-            "action": "STORE",
-            "category": "employment",
-            "category_description": "Jobs and roles",
+            "actions": [
+                {"action": "STORE", "category": "employment", "category_description": "Jobs"},
+            ],
+            "response": "Got it!",
         })
         service = LlmService(_mock_client(response_json))
-        decision = service.decide_task("I work at Amazon")
-        assert decision.action == AgentAction.STORE
-        assert decision.category == "employment"
-        assert decision.description == "Jobs and roles"
+        result = service.decide_task("I work at Amazon")
+        assert len(result.actions) == 1
+        assert result.actions[0].action == AgentAction.STORE
+        assert result.actions[0].category == "employment"
+        assert result.response == "Got it!"
 
-    def test_decide_task_chat(self):
+    def test_decide_task_no_actions(self):
         response_json = json.dumps({
-            "action": "CHAT",
-            "category": "",
-            "category_description": "",
+            "actions": [],
+            "response": "Just chatting!",
         })
         service = LlmService(_mock_client(response_json))
-        decision = service.decide_task("What's the weather?")
-        assert decision.action == AgentAction.CHAT
+        result = service.decide_task("What's up?")
+        assert result.actions == []
+        assert result.response == "Just chatting!"
 
-    def test_decide_task_delete(self):
+    def test_decide_task_multiple_actions(self):
         response_json = json.dumps({
-            "action": "DELETE",
-            "category": "employment",
-            "category_description": "Jobs and roles",
+            "actions": [
+                {"action": "STORE", "category": "employment", "category_description": "Jobs"},
+                {"action": "STORE", "category": "goal", "category_description": "Goals"},
+            ],
+            "response": "Busy life!",
         })
         service = LlmService(_mock_client(response_json))
-        decision = service.decide_task("Forget my job info")
-        assert decision.action == AgentAction.DELETE
+        result = service.decide_task("I work at Amazon and want to run a marathon")
+        assert len(result.actions) == 2
 
     def test_decide_task_strips_markdown_fences(self):
-        response_json = '```json\n{"action": "STORE", "category": "goal", "category_description": "Personal goals"}\n```'
+        response_json = '```json\n{"actions": [{"action": "STORE", "category": "goal", "category_description": "Goals"}], "response": "Nice!"}\n```'
         service = LlmService(_mock_client(response_json))
-        decision = service.decide_task("I want to run a marathon")
-        assert decision.action == AgentAction.STORE
-        assert decision.category == "goal"
+        result = service.decide_task("I want to run a marathon")
+        assert len(result.actions) == 1
+        assert result.response == "Nice!"

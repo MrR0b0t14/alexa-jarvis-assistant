@@ -1,8 +1,7 @@
-import json
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 from models.memory import MemoryFact, CategoryRegistry
-from models.llm import AgentAction, AgentTaskDecision
+from models.llm import AgentAction, AgentTaskDecision, AgentResponse
 from services.extraction_service import ExtractionService
 
 
@@ -22,39 +21,79 @@ def extraction_service(memory_service, llm_service):
 
 
 class TestExtractionServiceProcess:
-    def test_dispatches_to_store_handler(self, extraction_service, memory_service, llm_service):
+    def test_returns_response_with_no_actions(self, extraction_service, memory_service, llm_service):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
-        llm_service.decide_task.return_value = AgentTaskDecision(
-            action=AgentAction.STORE, category="employment", description="Jobs"
-        )
-        with pytest.raises(NotImplementedError):
-            extraction_service.process("user_123", "I work at Amazon")
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(actions=[], response="Hey there!")
 
-    def test_dispatches_to_delete_handler(self, extraction_service, memory_service, llm_service):
+        result = extraction_service.process("user_123", "hello")
+        assert result == "Hey there!"
+
+    def test_executes_store_action(self, extraction_service, memory_service, llm_service):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
-        llm_service.decide_task.return_value = AgentTaskDecision(
-            action=AgentAction.DELETE, category="employment", description="Jobs"
+        memory_service.get_all_facts.return_value = []
+        memory_service.get_fact.return_value = None
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.STORE, category="employment", description="Jobs")],
+            response="Cool!",
         )
-        with pytest.raises(NotImplementedError):
-            extraction_service.process("user_123", "Forget my job info")
+        llm_service.call_llm.return_value = "Works at Amazon"
 
-    def test_dispatches_to_chat_handler(self, extraction_service, memory_service, llm_service):
+        result = extraction_service.process("user_123", "I work at Amazon")
+        assert result == "Cool!"
+        memory_service.save_fact.assert_called_once()
+        memory_service.save_categories.assert_called_once()
+
+    def test_executes_delete_action(self, extraction_service, memory_service, llm_service):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
-        llm_service.decide_task.return_value = AgentTaskDecision(
-            action=AgentAction.CHAT, category="", description=""
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.DELETE, category="health", description="Health")],
+            response="Forgotten!",
         )
-        with pytest.raises(NotImplementedError):
-            extraction_service.process("user_123", "What's the weather?")
 
-    def test_passes_categories_to_classify_prompt(self, extraction_service, memory_service, llm_service):
+        result = extraction_service.process("user_123", "Forget my health info")
+        assert result == "Forgotten!"
+        memory_service.delete_fact.assert_called_once_with("user_123", "health")
+
+    def test_executes_multiple_actions(self, extraction_service, memory_service, llm_service):
+        memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
+        memory_service.get_all_facts.return_value = []
+        memory_service.get_fact.return_value = None
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[
+                AgentTaskDecision(action=AgentAction.STORE, category="employment", description="Jobs"),
+                AgentTaskDecision(action=AgentAction.STORE, category="goal", description="Goals"),
+            ],
+            response="Busy life!",
+        )
+        llm_service.call_llm.return_value = "Some fact"
+
+        result = extraction_service.process("user_123", "I work at Amazon and want to run a marathon")
+        assert result == "Busy life!"
+        assert memory_service.save_fact.call_count == 2
+
+    def test_store_reuses_existing_category(self, extraction_service, memory_service, llm_service):
         registry = CategoryRegistry(user_id="user_123", categories={"employment": "Jobs"})
         memory_service.get_categories.return_value = registry
-        llm_service.decide_task.return_value = AgentTaskDecision(
-            action=AgentAction.CHAT, category="", description=""
+        memory_service.get_all_facts.return_value = []
+        memory_service.get_fact.return_value = MemoryFact("user_123", "employment", "Works at Google", "old")
+        llm_service.decide_task.return_value = AgentResponse(
+            actions=[AgentTaskDecision(action=AgentAction.STORE, category="employment", description="Jobs")],
+            response="Updated!",
         )
-        with pytest.raises(NotImplementedError):
-            extraction_service.process("user_123", "hello")
+        llm_service.call_llm.return_value = "Works at Amazon, previously Google"
 
+        extraction_service.process("user_123", "I now work at Amazon")
+        memory_service.save_categories.assert_not_called()
+
+    def test_passes_categories_to_prompt(self, extraction_service, memory_service, llm_service):
+        registry = CategoryRegistry(user_id="user_123", categories={"employment": "Jobs"})
+        memory_service.get_categories.return_value = registry
+        memory_service.get_all_facts.return_value = []
+        llm_service.decide_task.return_value = AgentResponse(actions=[], response="Hi!")
+
+        extraction_service.process("user_123", "hello")
         prompt_arg = llm_service.decide_task.call_args[0][0]
         assert "employment" in prompt_arg
         assert "hello" in prompt_arg
