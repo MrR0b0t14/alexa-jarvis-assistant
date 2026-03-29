@@ -1,4 +1,5 @@
 groq
 boto3
 pytest
+pytest-cov
 moto[dynamodb]
