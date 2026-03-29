@@ -1,6 +1,7 @@
 # Alexa Jarvis Assistant
 
-[![CI](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
+[![Tests](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
+[![Code Coverage](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant/branch/mainline/graph/badge.svg)](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant)
 
 A personal AI memory system powered by Alexa, AWS Lambda, and LLMs. Jarvis remembers facts about you, updates them over time, and acts as a personal AI assistant.
 
