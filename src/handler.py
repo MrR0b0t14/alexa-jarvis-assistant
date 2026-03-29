@@ -1,6 +1,8 @@
 """Lambda entry point for the Alexa Jarvis Assistant."""
 
 import os
+import json as json_lib
+import urllib.request
 from typing import Any, Optional
 import boto3
 from groq import Groq
@@ -50,6 +52,35 @@ def _get_base_services() -> tuple[MemoryService, LlmService]:
     return _memory_service, _llm_service
 
 
+def _get_device_timezone(event: dict[str, Any]) -> str:
+    """Gets the device timezone from the Alexa Settings API.
+
+    Args:
+        event: The Alexa request event.
+
+    Returns:
+        IANA timezone string (e.g., "Europe/Rome"). Defaults to "UTC".
+    """
+    try:
+        system = event.get("context", {}).get("System", {})
+        api_endpoint = system.get("apiEndpoint", "")
+        api_token = system.get("apiAccessToken", "")
+        device_id = system.get("device", {}).get("deviceId", "")
+
+        if not all([api_endpoint, api_token, device_id]):
+            return "UTC"
+
+        url = f"{api_endpoint}/v2/devices/{device_id}/settings/System.timeZone"
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {api_token}"})
+        with urllib.request.urlopen(req, timeout=2) as resp:
+            tz = json_lib.loads(resp.read().decode())
+            logger.info("Device timezone: %s", tz)
+            return str(tz)
+    except Exception as e:
+        logger.warning("Failed to get timezone: %s", str(e))
+        return "UTC"
+
+
 def _build_extraction_service(event: dict[str, Any]) -> ExtractionService:
     """Builds an ExtractionService with optional calendar support.
 
@@ -64,7 +95,7 @@ def _build_extraction_service(event: dict[str, Any]) -> ExtractionService:
     memory_service, llm_service = _get_base_services()
 
     access_token = event.get("context", {}).get("System", {}).get("user", {}).get("accessToken")
-    calendar_service = CalendarService(access_token) if access_token else None
+    calendar_service = CalendarService(access_token, _get_device_timezone(event)) if access_token else None
 
     if not access_token:
         logger.info("No Google account linked — calendar disabled")

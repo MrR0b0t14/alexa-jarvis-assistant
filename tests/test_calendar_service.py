@@ -30,7 +30,7 @@ class TestCalendarService:
             "start": {"dateTime": "2026-10-15T10:00:00"},
         }
 
-        service = CalendarService("fake_token")
+        service = CalendarService("fake_token", "Europe/Rome")
         event = CalendarEvent(summary="Meeting", date="2026-10-15", time="10:00", duration_hours=1)
         result = service.create_event(event)
 
@@ -38,6 +38,7 @@ class TestCalendarService:
         body = mock_service.events.return_value.insert.call_args[1]["body"]
         assert "dateTime" in body["start"]
         assert "10:00" in body["start"]["dateTime"]
+        assert body["start"]["timeZone"] == "Europe/Rome"
 
     def test_get_events(self, mock_creds, mock_build):
         mock_service = MagicMock()

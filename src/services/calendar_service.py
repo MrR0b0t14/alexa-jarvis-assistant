@@ -15,11 +15,13 @@ class CalendarService:
 
     Args:
         access_token: The OAuth2 access token from Alexa Account Linking.
+        timezone: IANA timezone string (e.g., "Europe/Rome").
     """
 
-    def __init__(self, access_token: str) -> None:
+    def __init__(self, access_token: str, timezone: str = "UTC") -> None:
         credentials = Credentials(token=access_token)
         self.service = build("calendar", "v3", credentials=credentials)
+        self.timezone = timezone
 
     def create_event(self, event: CalendarEvent) -> CalendarEventResult:
         """Creates a calendar event.
@@ -42,11 +44,11 @@ class CalendarService:
         else:
             start_dt = datetime.fromisoformat(f"{event.date}T{event.time}:00")
             end_dt = start_dt + timedelta(hours=event.duration_hours)
-            body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": "UTC"}
-            body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": "UTC"}
+            body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": self.timezone}
+            body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": self.timezone}
 
         result = self.service.events().insert(calendarId="primary", body=body).execute()
-        logger.info("Created event: %s on %s %s", event.summary, event.date, event.time or "all-day")
+        logger.info("Created event: %s on %s %s (%s)", event.summary, event.date, event.time or "all-day", self.timezone)
         return CalendarEventResult.from_google(result)
 
     def get_events(self, start_date: str = "", end_date: str = "") -> list[CalendarEventResult]:
