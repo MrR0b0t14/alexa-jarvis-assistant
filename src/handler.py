@@ -33,7 +33,7 @@ HELP_MSG = (
 
 FALLBACK_MSG = (
     "I didn't quite catch that. Try starting with a phrase like: "
-    "tell me, remember that, or I think."
+    "Jarvis, tell me... or Jarvis remember that, or Jarvis, I think."
 )
 
 
@@ -95,10 +95,12 @@ def _build_extraction_service(event: dict[str, Any]) -> ExtractionService:
     memory_service, llm_service = _get_base_services()
 
     access_token = event.get("context", {}).get("System", {}).get("user", {}).get("accessToken")
-    calendar_service = CalendarService(access_token, _get_device_timezone(event)) if access_token else None
+    calendar_service = None
 
     if not access_token:
         logger.info("No Google account linked — calendar disabled")
+    else:
+        calendar_service = CalendarService(access_token, _get_device_timezone(event))
 
     return ExtractionService(memory_service, llm_service, calendar_service)
 
@@ -117,7 +119,11 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         request_type = event["request"]["type"]
         user_id = event["session"]["user"]["userId"]
 
-        if request_type == "LaunchRequest":
+        if request_type == "SessionEndedRequest":
+            logger.info("Session ended for user %s", user_id)
+            return build_response("", end_session=True)
+
+        elif request_type == "LaunchRequest":
             return build_response(LAUNCH_MSG, reprompt="I'm listening.")
 
         elif request_type == "IntentRequest":
@@ -139,8 +145,8 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             elif intent == "AMAZON.FallbackIntent":
                 return build_response(FALLBACK_MSG, reprompt="I'm still here.")
 
-        return build_response("I didn't catch that.")
+        return build_response("I didn't catch that.", reprompt="I'm still here.")
 
     except Exception as e:
         logger.error("Error: %s", str(e), exc_info=True)
-        return build_response("Something went wrong. Try again.")
+        return build_response("Something went wrong. Try again.", reprompt="I'm still here.")

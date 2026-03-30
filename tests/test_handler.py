@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from handler import lambda_handler, _get_base_services, _build_extraction_service, LAUNCH_MSG, HELP_MSG, FALLBACK_MSG
+from handler import lambda_handler, _get_base_services, _get_device_timezone, _build_extraction_service, LAUNCH_MSG, HELP_MSG, FALLBACK_MSG
 import handler
 
 
@@ -54,6 +54,15 @@ class TestLambdaHandler:
         result = lambda_handler(_alexa_event("AMAZON.FallbackIntent"), None)
         assert result["response"]["outputSpeech"]["text"] == FALLBACK_MSG
 
+    def test_session_ended_request(self):
+        event = {
+            "session": {"user": {"userId": "test_user"}},
+            "request": {"type": "SessionEndedRequest"},
+            "context": {"System": {"user": {}}},
+        }
+        result = lambda_handler(event, None)
+        assert result["response"]["shouldEndSession"] is True
+
     def test_unknown_request_type(self):
         event = {
             "session": {"user": {"userId": "test_user"}},
@@ -62,12 +71,14 @@ class TestLambdaHandler:
         }
         result = lambda_handler(event, None)
         assert "didn't catch" in result["response"]["outputSpeech"]["text"].lower()
+        assert "reprompt" in result["response"]
 
     @patch("handler._build_extraction_service")
     def test_error_handling(self, mock_build):
         mock_build.return_value.process.side_effect = Exception("boom")
         result = lambda_handler(_alexa_event("LogActivityIntent", "test"), None)
         assert "went wrong" in result["response"]["outputSpeech"]["text"].lower()
+        assert "reprompt" in result["response"]
 
 
 class TestBuildExtractionService:
@@ -91,13 +102,11 @@ class TestBuildExtractionService:
 
 class TestGetDeviceTimezone:
     def test_returns_utc_when_missing_fields(self):
-        from handler import _get_device_timezone
         event = _alexa_event("LogActivityIntent")
         assert _get_device_timezone(event) == "UTC"
 
     @patch("handler.urllib.request.urlopen")
     def test_returns_timezone_from_api(self, mock_urlopen):
-        from handler import _get_device_timezone
         mock_resp = MagicMock()
         mock_resp.read.return_value = b'"Europe/Rome"'
         mock_resp.__enter__ = lambda s: s
@@ -118,7 +127,6 @@ class TestGetDeviceTimezone:
 
     @patch("handler.urllib.request.urlopen", side_effect=Exception("timeout"))
     def test_returns_utc_on_error(self, mock_urlopen):
-        from handler import _get_device_timezone
         event = {
             "session": {"user": {"userId": "test"}},
             "request": {"type": "LaunchRequest"},
