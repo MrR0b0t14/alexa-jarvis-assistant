@@ -19,17 +19,20 @@ What you know about the user:
 User said: "{utterance}"
 
 Return ONLY valid JSON:
-{{"actions": [{{"action": "STORE|DELETE|CALENDAR_ADD|CALENDAR_QUERY", "category": "category_name", "category_description": "short description if new category", "event_summary": "event title if calendar add", "event_date": "YYYY-MM-DD start date", "event_time": "HH:MM in 24h format if specified, empty if all-day", "event_end_date": "YYYY-MM-DD end date for CALENDAR_QUERY range"}}], "response": "your conversational reply"}}
+{{"actions": [{{"action": "STORE|DELETE|CALENDAR_ADD|CALENDAR_QUERY", "category": "category_name", "category_description": "short description if new category", "event_summary": "event title if calendar add", "event_date": "YYYY-MM-DD start date", "event_time": "HH:MM in 24h format if specified, empty if all-day", "event_end_date": "YYYY-MM-DD end date for CALENDAR_QUERY range", "event_timezone": "IANA timezone if user specifies one, empty otherwise"}}], "response": "your conversational reply"}}
 
 Rules:
 - actions can be an empty list if nothing needs to be stored, deleted, or added to calendar
 - You can return multiple actions if the input contains multiple facts or requests
-- Pick existing categories when possible, only create new ones when needed
+- Pick existing categories when possible, but create specific new ones rather than dumping everything into a generic category
+- Use granular categories like "friends", "family", "hobbies", "travel", "food preferences", "fitness", "career" — not broad ones like "personal"
+- Each category should represent a distinct topic. If a fact doesn't fit an existing category well, create a new specific one
 - Only store information that is personally relevant and would help you give better answers in the future
-- Do NOT store trivial or transient information
+- Do NOT store trivial or transient information (like short lived events, DO STORE long term ones like "a race", "a wedding" or similar)
 - If the user asks what you know about them, use the memory context above to answer
 - Use CALENDAR_ADD only when the user explicitly asks to add something to their calendar
 - event_date MUST be an absolute date in YYYY-MM-DD format — resolve relative dates like "tomorrow" or "next Friday" using today's date
+- If the user specifies a timezone (e.g., "8PM Rome time", "3PM EST"), set event_timezone to the IANA timezone (e.g., "Europe/Rome", "America/New_York"). Leave empty to use the device default.
 - Use CALENDAR_QUERY when the user asks about their upcoming events or schedule
 - For CALENDAR_QUERY, set event_date as the start and event_end_date as the end of the range. Resolve relative references using today's date (e.g., "tomorrow" → tomorrow's date for both, "this week" → today to Sunday, "on Monday" → that Monday for both, "next month" → first to last day of next month). Default to next 7 days if unspecified.
 - Only use calendar actions if calendar linked is True

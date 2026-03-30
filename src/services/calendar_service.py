@@ -42,10 +42,11 @@ class CalendarService:
             body["start"] = {"date": event.date}
             body["end"] = {"date": (start + timedelta(days=1)).strftime("%Y-%m-%d")}
         else:
+            tz = event.timezone or self.timezone
             start_dt = datetime.fromisoformat(f"{event.date}T{event.time}:00")
             end_dt = start_dt + timedelta(hours=event.duration_hours)
-            body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": self.timezone}
-            body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": self.timezone}
+            body["start"] = {"dateTime": start_dt.isoformat(), "timeZone": tz}
+            body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": tz}
 
         result = self.service.events().insert(calendarId="primary", body=body).execute()
         logger.info("Created event: %s on %s %s (%s)", event.summary, event.date, event.time or "all-day", self.timezone)

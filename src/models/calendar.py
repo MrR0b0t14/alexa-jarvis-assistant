@@ -20,6 +20,7 @@ class CalendarEvent(BaseModel):
     time: str = ""
     description: str = ""
     duration_hours: int = 1
+    timezone: str = ""
 
     @property
     def is_all_day(self) -> bool:

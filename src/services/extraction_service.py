@@ -129,6 +129,7 @@ class ExtractionService:
                 time=decision.event_time,
                 description=f"Created by Jarvis from: {utterance}",
                 duration_hours=24 if is_all_day else 1,
+                timezone=decision.event_timezone,
             )
             self.calendar_service.create_event(event)
         except (ValueError, Exception) as e:

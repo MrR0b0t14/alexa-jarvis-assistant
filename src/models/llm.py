@@ -39,6 +39,7 @@ class AgentTaskDecision(BaseModel):
     event_date: str = ""
     event_time: str = ""
     event_end_date: str = ""
+    event_timezone: str = ""
 
 
 class AgentResponse(BaseModel):
