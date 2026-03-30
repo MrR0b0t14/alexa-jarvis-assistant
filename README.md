@@ -1,5 +1,7 @@
 # Alexa Jarvis Assistant
 
+![Python 3.14+](https://img.shields.io/badge/python-3.14+-green)
+![License: MIT](https://img.shields.io/badge/license-MIT-red)
 [![CI](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant/branch/mainline/graph/badge.svg)](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant)
 
@@ -284,8 +286,7 @@ requirements/
 
 ## Roadmap
 
-- [ ] **Session memory**: Multi-turn conversation context using Alexa session attributes
-- [ ] **Faster responses**: Use a smaller model (Llama 3.1 8B) for classification, keep 70B for conversation
-- [ ] **Auto-deploy**: GitHub Actions workflow to deploy on merge to mainline
-- [ ] **Reprompt**: Keep the Alexa session alive between turns
-- [ ] **Calendar event confirmation**: Ask user before creating events from auto-detected plans
+- [ ] **Session memory**: Multi-turn conversation context using Alexa session attributes.
+- [ ] **Faster responses**: Use a smaller model (Llama 3.1 8B) for classification, keep 70B for conversation.
+- [ ] **Auto-deploy**: GitHub Actions workflow to deploy on merge to mainline.
+- [ ] **Calendar event confirmation**: Ask user before creating events from auto-detected plans.
