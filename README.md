@@ -1,9 +1,9 @@
 # Alexa Jarvis Assistant
 
-![Python 3.14+](https://img.shields.io/badge/python-3.14+-green)
-![License: MIT](https://img.shields.io/badge/license-MIT-red)
-[![CI](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant/branch/mainline/graph/badge.svg)](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant)
+![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue?style=plastic&logo=python)
+![License: MIT](https://img.shields.io/badge/Licence-MIT-orange?style=plastic)
+[![Build](https://img.shields.io/github/actions/workflow/status/MrR0b0t14/alexa-jarvis-assistant/ci.yml?branch=mainline&style=plastic&logo=github&label=Build)](https://github.com/MrR0b0t14/alexa-jarvis-assistant/actions/workflows/ci.yml)
+[![Test Coverage](https://img.shields.io/codecov/c/gh/MrR0b0t14/alexa-jarvis-assistant/mainline?style=plastic&logo=codecov&label=Coverage)](https://codecov.io/gh/MrR0b0t14/alexa-jarvis-assistant)
 
 A personal AI memory system powered by Alexa, AWS Lambda, DynamoDB, and LLMs. Jarvis remembers facts about you, builds a knowledge base over time, and uses that context to have personalized conversations. Optionally integrates with Google Calendar to manage your schedule.
 
