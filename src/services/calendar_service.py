@@ -49,7 +49,9 @@ class CalendarService:
             body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": tz}
 
         result = self.service.events().insert(calendarId="primary", body=body).execute()
-        logger.info("Created event: %s on %s %s (%s)", event.summary, event.date, event.time or "all-day", self.timezone)
+        logger.info(
+            "Created event: %s on %s %s (%s)", event.summary, event.date, event.time or "all-day", self.timezone
+        )
         return CalendarEventResult.from_google(result)
 
     def get_events(self, start_date: str = "", end_date: str = "") -> list[CalendarEventResult]:
@@ -72,14 +74,18 @@ class CalendarService:
         else:
             time_max = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
 
-        result = self.service.events().list(
-            calendarId="primary",
-            timeMin=time_min,
-            timeMax=time_max,
-            maxResults=10,
-            singleEvents=True,
-            orderBy="startTime",
-        ).execute()
+        result = (
+            self.service.events()
+            .list(
+                calendarId="primary",
+                timeMin=time_min,
+                timeMax=time_max,
+                maxResults=10,
+                singleEvents=True,
+                orderBy="startTime",
+            )
+            .execute()
+        )
 
         events = [CalendarEventResult.from_google(e) for e in result.get("items", [])]
         logger.info("Found %d events between %s and %s", len(events), start_date or "now", end_date or "+7d")

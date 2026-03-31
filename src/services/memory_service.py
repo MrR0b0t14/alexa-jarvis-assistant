@@ -72,9 +72,7 @@ class MemoryService:
             ExpressionAttributeValues={":uid": user_id},
         )
         return [
-            MemoryFact.from_dynamo(i)
-            for i in resp.get("Items", [])
-            if i["category"] != CategoryRegistry.METADATA_SK
+            MemoryFact.from_dynamo(i) for i in resp.get("Items", []) if i["category"] != CategoryRegistry.METADATA_SK
         ]
 
     def save_fact(self, fact: MemoryFact) -> None:

@@ -1,9 +1,14 @@
-.PHONY: check lint test deploy
+.PHONY: check lint test format deploy
 
 check: lint test
 
 lint:
+	ruff check src/ tests/
+	ruff format --check src/ tests/
 	mypy src/
+
+format:
+	ruff format src/ tests/
 
 test:
 	pytest -v

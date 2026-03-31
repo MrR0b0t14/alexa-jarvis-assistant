@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from models.memory import MemoryFact, CategoryRegistry
-from models.calendar import CalendarEvent, CalendarEventResult
+from models.calendar import CalendarEventResult
 from models.llm import AgentAction, AgentTaskDecision, AgentResponse
 from services.extraction_service import ExtractionService
 
@@ -111,19 +111,25 @@ class TestExtractionServiceProcess:
 
 
 class TestCalendarActions:
-    def test_calendar_add_with_service(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+    def test_calendar_add_with_service(
+        self, extraction_service_with_calendar, memory_service, llm_service, calendar_service
+    ):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
         memory_service.get_all_facts.return_value = []
         llm_service.decide_task.return_value = AgentResponse(
-            actions=[AgentTaskDecision(
-                action=AgentAction.CALENDAR_ADD,
-                event_summary="Trip to China",
-                event_date="2026-10-15",
-            )],
+            actions=[
+                AgentTaskDecision(
+                    action=AgentAction.CALENDAR_ADD,
+                    event_summary="Trip to China",
+                    event_date="2026-10-15",
+                )
+            ],
             response="Added your China trip to the calendar!",
         )
 
-        result = extraction_service_with_calendar.process("user_123", "Add my China trip to the calendar on October 15th")
+        result = extraction_service_with_calendar.process(
+            "user_123", "Add my China trip to the calendar on October 15th"
+        )
         assert result == "Added your China trip to the calendar!"
         calendar_service.create_event.assert_called_once()
 
@@ -131,11 +137,13 @@ class TestCalendarActions:
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
         memory_service.get_all_facts.return_value = []
         llm_service.decide_task.return_value = AgentResponse(
-            actions=[AgentTaskDecision(
-                action=AgentAction.CALENDAR_ADD,
-                event_summary="Trip",
-                event_date="2026-10-15",
-            )],
+            actions=[
+                AgentTaskDecision(
+                    action=AgentAction.CALENDAR_ADD,
+                    event_summary="Trip",
+                    event_date="2026-10-15",
+                )
+            ],
             response="Sure!",
         )
 
@@ -153,23 +161,29 @@ class TestCalendarActions:
         result = extraction_service_with_calendar.process("user_123", "add to calendar")
         assert result == "What event?"
 
-    def test_calendar_add_invalid_date(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+    def test_calendar_add_invalid_date(
+        self, extraction_service_with_calendar, memory_service, llm_service, calendar_service
+    ):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
         memory_service.get_all_facts.return_value = []
         calendar_service.create_event.side_effect = ValueError("Invalid date")
         llm_service.decide_task.return_value = AgentResponse(
-            actions=[AgentTaskDecision(
-                action=AgentAction.CALENDAR_ADD,
-                event_summary="Dinner",
-                event_date="tomorrow",
-            )],
+            actions=[
+                AgentTaskDecision(
+                    action=AgentAction.CALENDAR_ADD,
+                    event_summary="Dinner",
+                    event_date="tomorrow",
+                )
+            ],
             response="Added!",
         )
 
         result = extraction_service_with_calendar.process("user_123", "add dinner tomorrow")
         assert "didn't look right" in result
 
-    def test_calendar_query_with_events(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+    def test_calendar_query_with_events(
+        self, extraction_service_with_calendar, memory_service, llm_service, calendar_service
+    ):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
         memory_service.get_all_facts.return_value = []
         calendar_service.get_events.return_value = [
@@ -185,7 +199,9 @@ class TestCalendarActions:
         assert "Team standup" in result
         assert "Dentist" in result
 
-    def test_calendar_query_empty(self, extraction_service_with_calendar, memory_service, llm_service, calendar_service):
+    def test_calendar_query_empty(
+        self, extraction_service_with_calendar, memory_service, llm_service, calendar_service
+    ):
         memory_service.get_categories.return_value = CategoryRegistry(user_id="user_123")
         memory_service.get_all_facts.return_value = []
         calendar_service.get_events.return_value = []

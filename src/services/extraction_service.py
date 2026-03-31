@@ -26,7 +26,9 @@ class ExtractionService:
         calendar_service: Google Calendar operations (None if not linked).
     """
 
-    def __init__(self, memory_service: MemoryService, llm_service: LlmService, calendar_service: Optional[CalendarService] = None) -> None:
+    def __init__(
+        self, memory_service: MemoryService, llm_service: LlmService, calendar_service: Optional[CalendarService] = None
+    ) -> None:
         self.memory_service = memory_service
         self.llm_service = llm_service
         self.calendar_service = calendar_service
@@ -54,7 +56,9 @@ class ExtractionService:
         memory_context = "\n".join(f"- {f.category}: {f.value}" for f in facts) or "No information stored yet."
         has_calendar = self.calendar_service is not None
 
-        logger.debug("Categories: %s | Facts: %d | Calendar: %s", list(registry.categories.keys()), len(facts), has_calendar)
+        logger.debug(
+            "Categories: %s | Facts: %d | Calendar: %s", list(registry.categories.keys()), len(facts), has_calendar
+        )
 
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         prompt = CLASSIFY_PROMPT.format(
@@ -77,7 +81,9 @@ class ExtractionService:
 
         return calendar_response or agent_response.response
 
-    def _handle_store(self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry) -> Optional[str]:
+    def _handle_store(
+        self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry
+    ) -> Optional[str]:
         """Stores or updates a memory fact."""
         logger.info("STORE action: category=%s", decision.category)
 
@@ -105,13 +111,17 @@ class ExtractionService:
         self.memory_service.save_fact(fact)
         return None
 
-    def _handle_delete(self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry) -> Optional[str]:
+    def _handle_delete(
+        self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry
+    ) -> Optional[str]:
         """Deletes an entire memory category."""
         logger.info("DELETE action: category=%s", decision.category)
         self.memory_service.delete_fact(user_id, decision.category)
         return None
 
-    def _handle_calendar_add(self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry) -> Optional[str]:
+    def _handle_calendar_add(
+        self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry
+    ) -> Optional[str]:
         """Adds an event to Google Calendar."""
         if not self.calendar_service:
             return "I'd love to add that to your calendar, but your Google account isn't linked yet. You can do that in the Alexa app."
@@ -120,7 +130,12 @@ class ExtractionService:
             logger.warning("Missing event details: summary=%s date=%s", decision.event_summary, decision.event_date)
             return None
 
-        logger.info("CALENDAR_ADD: %s on %s at %s", decision.event_summary, decision.event_date, decision.event_time or "all-day")
+        logger.info(
+            "CALENDAR_ADD: %s on %s at %s",
+            decision.event_summary,
+            decision.event_date,
+            decision.event_time or "all-day",
+        )
         try:
             is_all_day = not decision.event_time
             event = CalendarEvent(
@@ -137,7 +152,9 @@ class ExtractionService:
             return f"I couldn't add that to your calendar — the date '{decision.event_date}' didn't look right. Try specifying an exact date."
         return None
 
-    def _handle_calendar_query(self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry) -> Optional[str]:
+    def _handle_calendar_query(
+        self, user_id: str, utterance: str, decision: AgentTaskDecision, registry: CategoryRegistry
+    ) -> Optional[str]:
         """Retrieves upcoming calendar events and formats a spoken response."""
         if not self.calendar_service:
             return "I can't check your calendar because your Google account isn't linked yet. You can link it in the Alexa app."

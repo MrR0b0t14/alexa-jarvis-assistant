@@ -30,12 +30,14 @@ class TestLlmService:
         assert service.call_llm("test") == "some response"
 
     def test_decide_task_with_actions(self):
-        response_json = json.dumps({
-            "actions": [
-                {"action": "STORE", "category": "employment", "category_description": "Jobs"},
-            ],
-            "response": "Got it!",
-        })
+        response_json = json.dumps(
+            {
+                "actions": [
+                    {"action": "STORE", "category": "employment", "category_description": "Jobs"},
+                ],
+                "response": "Got it!",
+            }
+        )
         service = LlmService(_mock_client(response_json))
         result = service.decide_task("I work at Amazon")
         assert len(result.actions) == 1
@@ -44,23 +46,27 @@ class TestLlmService:
         assert result.response == "Got it!"
 
     def test_decide_task_no_actions(self):
-        response_json = json.dumps({
-            "actions": [],
-            "response": "Just chatting!",
-        })
+        response_json = json.dumps(
+            {
+                "actions": [],
+                "response": "Just chatting!",
+            }
+        )
         service = LlmService(_mock_client(response_json))
         result = service.decide_task("What's up?")
         assert result.actions == []
         assert result.response == "Just chatting!"
 
     def test_decide_task_multiple_actions(self):
-        response_json = json.dumps({
-            "actions": [
-                {"action": "STORE", "category": "employment", "category_description": "Jobs"},
-                {"action": "STORE", "category": "goal", "category_description": "Goals"},
-            ],
-            "response": "Busy life!",
-        })
+        response_json = json.dumps(
+            {
+                "actions": [
+                    {"action": "STORE", "category": "employment", "category_description": "Jobs"},
+                    {"action": "STORE", "category": "goal", "category_description": "Goals"},
+                ],
+                "response": "Busy life!",
+            }
+        )
         service = LlmService(_mock_client(response_json))
         result = service.decide_task("I work at Amazon and want to run a marathon")
         assert len(result.actions) == 2

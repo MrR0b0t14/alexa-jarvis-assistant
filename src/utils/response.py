@@ -3,7 +3,12 @@
 from typing import Any, Optional
 
 
-def build_response(text: str, end_session: bool = False, reprompt: Optional[str] = None) -> dict[str, Any]:
+def build_response(
+    text: str,
+    end_session: bool = False,
+    reprompt: Optional[str] = None,
+    session_attributes: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
     """Builds an Alexa-formatted response.
 
     Args:

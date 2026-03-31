@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from models.calendar import CalendarEvent, CalendarEventResult
+from models.calendar import CalendarEvent
 from services.calendar_service import CalendarService
 
 

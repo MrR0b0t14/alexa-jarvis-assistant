@@ -1,5 +1,13 @@
 from unittest.mock import MagicMock, patch
-from handler import lambda_handler, _get_base_services, _get_device_timezone, _build_extraction_service, LAUNCH_MSG, HELP_MSG, FALLBACK_MSG
+from handler import (
+    lambda_handler,
+    _get_base_services,
+    _get_device_timezone,
+    _build_extraction_service,
+    LAUNCH_MSG,
+    HELP_MSG,
+    FALLBACK_MSG,
+)
 import handler
 
 
@@ -116,12 +124,14 @@ class TestGetDeviceTimezone:
         event = {
             "session": {"user": {"userId": "test"}},
             "request": {"type": "LaunchRequest"},
-            "context": {"System": {
-                "apiEndpoint": "https://api.eu.amazonalexa.com",
-                "apiAccessToken": "fake_token",
-                "device": {"deviceId": "device_123"},
-                "user": {},
-            }},
+            "context": {
+                "System": {
+                    "apiEndpoint": "https://api.eu.amazonalexa.com",
+                    "apiAccessToken": "fake_token",
+                    "device": {"deviceId": "device_123"},
+                    "user": {},
+                }
+            },
         }
         assert _get_device_timezone(event) == "Europe/Rome"
 
@@ -130,14 +140,17 @@ class TestGetDeviceTimezone:
         event = {
             "session": {"user": {"userId": "test"}},
             "request": {"type": "LaunchRequest"},
-            "context": {"System": {
-                "apiEndpoint": "https://api.eu.amazonalexa.com",
-                "apiAccessToken": "fake_token",
-                "device": {"deviceId": "device_123"},
-                "user": {},
-            }},
+            "context": {
+                "System": {
+                    "apiEndpoint": "https://api.eu.amazonalexa.com",
+                    "apiAccessToken": "fake_token",
+                    "device": {"deviceId": "device_123"},
+                    "user": {},
+                }
+            },
         }
         assert _get_device_timezone(event) == "UTC"
+
     @patch("handler.LlmService")
     @patch("handler.Groq")
     @patch("handler.boto3")
