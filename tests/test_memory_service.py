@@ -1,8 +1,8 @@
-import pytest
 import boto3
 from moto import mock_aws
 from models.memory import MemoryFact, CategoryRegistry
 from services.memory_service import MemoryService
+import pytest
 
 
 @pytest.fixture
@@ -24,10 +24,15 @@ def memory_service():
         yield MemoryService(dynamodb.Table("user_memory"))
 
 
+def _fact(
+    user_id: str = "user_123", category: str = "employment", value: str = "Works at Amazon", utterance: str = "test"
+) -> MemoryFact:
+    return MemoryFact(user_id=user_id, category=category, value=value, source_utterance=utterance)
+
+
 class TestMemoryService:
     def test_save_and_get_fact(self, memory_service):
-        fact = MemoryFact("user_123", "employment", "Works at Amazon", "I work at Amazon")
-        memory_service.save_fact(fact)
+        memory_service.save_fact(_fact())
         result = memory_service.get_fact("user_123", "employment")
         assert result is not None
         assert result.value == "Works at Amazon"
@@ -38,8 +43,8 @@ class TestMemoryService:
     def test_get_all_facts_excludes_metadata(self, memory_service):
         reg = CategoryRegistry(user_id="user_123", categories={"employment": "Jobs"})
         memory_service.save_categories(reg)
-        memory_service.save_fact(MemoryFact("user_123", "employment", "Works at Amazon", "test"))
-        memory_service.save_fact(MemoryFact("user_123", "goal", "Run a marathon", "test"))
+        memory_service.save_fact(_fact())
+        memory_service.save_fact(_fact(category="goal", value="Run a marathon"))
 
         facts = memory_service.get_all_facts("user_123")
         categories = [f.category for f in facts]
@@ -48,7 +53,7 @@ class TestMemoryService:
         assert "metadata#categories" not in categories
 
     def test_delete_fact(self, memory_service):
-        memory_service.save_fact(MemoryFact("user_123", "employment", "Works at Amazon", "test"))
+        memory_service.save_fact(_fact())
         memory_service.delete_fact("user_123", "employment")
         assert memory_service.get_fact("user_123", "employment") is None
 
@@ -67,8 +72,8 @@ class TestMemoryService:
         assert result.categories == {}
 
     def test_overwrite_fact(self, memory_service):
-        memory_service.save_fact(MemoryFact("user_123", "employment", "Works at Amazon", "v1"))
-        memory_service.save_fact(MemoryFact("user_123", "employment", "Works at Amazon as SDE3", "v2"))
+        memory_service.save_fact(_fact(utterance="v1"))
+        memory_service.save_fact(_fact(value="Works at Amazon as SDE3", utterance="v2"))
         result = memory_service.get_fact("user_123", "employment")
         assert result.value == "Works at Amazon as SDE3"
         assert result.source_utterance == "v2"

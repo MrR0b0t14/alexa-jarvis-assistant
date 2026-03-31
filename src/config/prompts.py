@@ -16,7 +16,10 @@ Existing categories: {categories}
 What you know about the user:
 {memory_context}
 
-User said: "{utterance}"
+Last 20 exchanges between you and the user:
+{history}
+
+User now said: "{utterance}"
 
 Return ONLY valid JSON:
 {{"actions": [{{"action": "STORE|DELETE|CALENDAR_ADD|CALENDAR_QUERY", "category": "category_name", "category_description": "short description if new category", "event_summary": "event title if calendar add", "event_date": "YYYY-MM-DD start date", "event_time": "HH:MM in 24h format if specified, empty if all-day", "event_end_date": "YYYY-MM-DD end date for CALENDAR_QUERY range", "event_timezone": "IANA timezone if user specifies one, empty otherwise"}}], "response": "your conversational reply"}}

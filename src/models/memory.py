@@ -1,18 +1,14 @@
 """Data models for the memory system."""
 
-from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, ClassVar
 import json
 
+from pydantic import BaseModel, Field
 
-@dataclass
-class MemoryFact:
+
+class MemoryFact(BaseModel):
     """A single consolidated fact within a memory category.
-
-    Each fact represents the current state of knowledge for a given category
-    (e.g., "employment", "goal"). The value is a free-text paragraph that the
-    LLM rewrites on every update — it is not append-only.
 
     Attributes:
         user_id: Alexa user identifier (partition key).
@@ -26,7 +22,7 @@ class MemoryFact:
     category: str
     value: str
     source_utterance: str
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dynamo(self) -> dict[str, str]:
         """Serializes this fact to a DynamoDB item.
@@ -34,13 +30,7 @@ class MemoryFact:
         Returns:
             A dict ready to be passed to ``table.put_item()``.
         """
-        return {
-            "user_id": self.user_id,
-            "category": self.category,
-            "value": self.value,
-            "source_utterance": self.source_utterance,
-            "updated_at": self.updated_at,
-        }
+        return self.model_dump()
 
     @classmethod
     def from_dynamo(cls, item: dict[str, Any]) -> "MemoryFact":
@@ -61,13 +51,10 @@ class MemoryFact:
         )
 
 
-@dataclass
-class CategoryRegistry:
+class CategoryRegistry(BaseModel):
     """Registry of known memory categories for a user.
 
     Stored as a single DynamoDB item with sort key "metadata#categories".
-    The LLM picks from existing categories or proposes new ones, which are
-    then added to this registry.
 
     Attributes:
         user_id: Alexa user identifier (partition key).
@@ -76,10 +63,10 @@ class CategoryRegistry:
     """
 
     user_id: str
-    categories: dict[str, str] = field(default_factory=dict)
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    categories: dict[str, str] = Field(default_factory=dict)
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
-    METADATA_SK: str = "metadata#categories"
+    METADATA_SK: ClassVar[str] = "metadata#categories"
 
     def to_dynamo(self) -> dict[str, str]:
         """Serializes this registry to a DynamoDB item.
@@ -130,3 +117,34 @@ class CategoryRegistry:
             True if the category exists, False otherwise.
         """
         return name in self.categories
+
+
+class HistoryEvent(BaseModel):
+    """A single interaction between the user and the agent.
+
+    Attributes:
+        user_request: What the user said.
+        agent_reply: What Jarvis responded.
+    """
+
+    user_request: str
+    agent_reply: str
+
+
+class History(BaseModel):
+    """Conversation history within an Alexa session.
+
+    Attributes:
+        exchanges: List of user/agent interactions, capped at 20.
+    """
+
+    exchanges: list[HistoryEvent] = Field(default_factory=list)
+
+    def add(self, event: HistoryEvent) -> None:
+        """Adds a new exchange and caps at 20 entries (Alexa 24KB session limit).
+
+        Args:
+            event: The new history event.
+        """
+        self.exchanges.append(event)
+        self.exchanges = self.exchanges[-20:]

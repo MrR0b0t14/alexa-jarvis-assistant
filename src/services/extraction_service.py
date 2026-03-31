@@ -5,7 +5,7 @@ Flow: classify utterance → execute memory/calendar actions silently → return
 
 from typing import Optional
 from datetime import datetime, timezone
-from models.memory import MemoryFact, CategoryRegistry
+from models.memory import History, MemoryFact, CategoryRegistry
 from models.calendar import CalendarEvent
 from models.llm import AgentAction, AgentTaskDecision
 from config.prompts import CLASSIFY_PROMPT, REWRITE_PROMPT
@@ -39,12 +39,13 @@ class ExtractionService:
             AgentAction.CALENDAR_QUERY: self._handle_calendar_query,
         }
 
-    def process(self, user_id: str, utterance: str) -> str:
+    def process(self, user_id: str, utterance: str, history: History) -> str:
         """Processes a user utterance through the full extraction pipeline.
 
         Args:
             user_id: The Alexa user identifier.
             utterance: The raw text the user spoke.
+            history: The conversation history for this session.
 
         Returns:
             The conversational response to speak back to the user.
@@ -54,6 +55,10 @@ class ExtractionService:
         registry = self.memory_service.get_categories(user_id)
         facts = self.memory_service.get_all_facts(user_id)
         memory_context = "\n".join(f"- {f.category}: {f.value}" for f in facts) or "No information stored yet."
+        conversation_history = (
+            "\n".join(f"User: {e.user_request}\nJarvis: {e.agent_reply}" for e in history.exchanges)
+            or "No previous conversation."
+        )
         has_calendar = self.calendar_service is not None
 
         logger.debug(
@@ -64,6 +69,7 @@ class ExtractionService:
         prompt = CLASSIFY_PROMPT.format(
             categories=registry.categories,
             memory_context=memory_context,
+            history=conversation_history,
             utterance=utterance,
             has_calendar=has_calendar,
             today=today,

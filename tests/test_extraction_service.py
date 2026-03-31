@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock
-from models.memory import MemoryFact, CategoryRegistry
+from models.memory import History, MemoryFact, CategoryRegistry
 from models.calendar import CalendarEventResult
 from models.llm import AgentAction, AgentTaskDecision, AgentResponse
 from services.extraction_service import ExtractionService
@@ -37,7 +37,7 @@ class TestExtractionServiceProcess:
         memory_service.get_all_facts.return_value = []
         llm_service.decide_task.return_value = AgentResponse(actions=[], response="Hey there!")
 
-        result = extraction_service.process("user_123", "hello")
+        result = extraction_service.process("user_123", "hello", History())
         assert result == "Hey there!"
 
     def test_executes_store_action(self, extraction_service, memory_service, llm_service):
@@ -50,7 +50,7 @@ class TestExtractionServiceProcess:
         )
         llm_service.call_llm.return_value = "Works at Amazon"
 
-        result = extraction_service.process("user_123", "I work at Amazon")
+        result = extraction_service.process("user_123", "I work at Amazon", History())
         assert result == "Cool!"
         memory_service.save_fact.assert_called_once()
         memory_service.save_categories.assert_called_once()
@@ -63,7 +63,7 @@ class TestExtractionServiceProcess:
             response="Forgotten!",
         )
 
-        result = extraction_service.process("user_123", "Forget my health info")
+        result = extraction_service.process("user_123", "Forget my health info", History())
         assert result == "Forgotten!"
         memory_service.delete_fact.assert_called_once_with("user_123", "health")
 
@@ -80,7 +80,7 @@ class TestExtractionServiceProcess:
         )
         llm_service.call_llm.return_value = "Some fact"
 
-        result = extraction_service.process("user_123", "I work at Amazon and want to run a marathon")
+        result = extraction_service.process("user_123", "I work at Amazon and want to run a marathon", History())
         assert result == "Busy life!"
         assert memory_service.save_fact.call_count == 2
 
@@ -88,14 +88,16 @@ class TestExtractionServiceProcess:
         registry = CategoryRegistry(user_id="user_123", categories={"employment": "Jobs"})
         memory_service.get_categories.return_value = registry
         memory_service.get_all_facts.return_value = []
-        memory_service.get_fact.return_value = MemoryFact("user_123", "employment", "Works at Google", "old")
+        memory_service.get_fact.return_value = MemoryFact(
+            user_id="user_123", category="employment", value="Works at Google", source_utterance="old"
+        )
         llm_service.decide_task.return_value = AgentResponse(
             actions=[AgentTaskDecision(action=AgentAction.STORE, category="employment", description="Jobs")],
             response="Updated!",
         )
         llm_service.call_llm.return_value = "Works at Amazon, previously Google"
 
-        extraction_service.process("user_123", "I now work at Amazon")
+        extraction_service.process("user_123", "I now work at Amazon", History())
         memory_service.save_categories.assert_not_called()
 
     def test_passes_categories_to_prompt(self, extraction_service, memory_service, llm_service):
@@ -104,7 +106,7 @@ class TestExtractionServiceProcess:
         memory_service.get_all_facts.return_value = []
         llm_service.decide_task.return_value = AgentResponse(actions=[], response="Hi!")
 
-        extraction_service.process("user_123", "hello")
+        extraction_service.process("user_123", "hello", History())
         prompt_arg = llm_service.decide_task.call_args[0][0]
         assert "employment" in prompt_arg
         assert "hello" in prompt_arg
@@ -128,7 +130,7 @@ class TestCalendarActions:
         )
 
         result = extraction_service_with_calendar.process(
-            "user_123", "Add my China trip to the calendar on October 15th"
+            "user_123", "Add my China trip to the calendar on October 15th", History()
         )
         assert result == "Added your China trip to the calendar!"
         calendar_service.create_event.assert_called_once()
@@ -147,7 +149,7 @@ class TestCalendarActions:
             response="Sure!",
         )
 
-        result = extraction_service.process("user_123", "Add trip to calendar")
+        result = extraction_service.process("user_123", "Add trip to calendar", History())
         assert "isn't linked" in result
 
     def test_calendar_add_missing_details(self, extraction_service_with_calendar, memory_service, llm_service):
@@ -158,7 +160,7 @@ class TestCalendarActions:
             response="What event?",
         )
 
-        result = extraction_service_with_calendar.process("user_123", "add to calendar")
+        result = extraction_service_with_calendar.process("user_123", "add to calendar", History())
         assert result == "What event?"
 
     def test_calendar_add_invalid_date(
@@ -178,7 +180,7 @@ class TestCalendarActions:
             response="Added!",
         )
 
-        result = extraction_service_with_calendar.process("user_123", "add dinner tomorrow")
+        result = extraction_service_with_calendar.process("user_123", "add dinner tomorrow", History())
         assert "didn't look right" in result
 
     def test_calendar_query_with_events(
@@ -195,7 +197,7 @@ class TestCalendarActions:
             response="Let me check...",
         )
 
-        result = extraction_service_with_calendar.process("user_123", "What's on my calendar?")
+        result = extraction_service_with_calendar.process("user_123", "What's on my calendar?", History())
         assert "Team standup" in result
         assert "Dentist" in result
 
@@ -210,7 +212,7 @@ class TestCalendarActions:
             response="Let me check...",
         )
 
-        result = extraction_service_with_calendar.process("user_123", "What's on my calendar?")
+        result = extraction_service_with_calendar.process("user_123", "What's on my calendar?", History())
         assert "clear" in result
 
     def test_calendar_query_without_service(self, extraction_service, memory_service, llm_service):
@@ -221,5 +223,5 @@ class TestCalendarActions:
             response="Let me check...",
         )
 
-        result = extraction_service.process("user_123", "What's on my calendar?")
+        result = extraction_service.process("user_123", "What's on my calendar?", History())
         assert "isn't linked" in result

@@ -15,6 +15,7 @@ def build_response(
         text: The text Alexa will speak.
         end_session: Whether to close the session after speaking.
         reprompt: Text to speak if the user doesn't respond.
+        session_attributes: Session state to persist between turns.
 
     Returns:
         An Alexa response dict.
@@ -25,4 +26,7 @@ def build_response(
     }
     if reprompt:
         response["reprompt"] = {"outputSpeech": {"type": "PlainText", "text": reprompt}}
-    return {"version": "1.0", "response": response}
+    result: dict[str, Any] = {"version": "1.0", "response": response}
+    if session_attributes is not None:
+        result["sessionAttributes"] = session_attributes
+    return result
