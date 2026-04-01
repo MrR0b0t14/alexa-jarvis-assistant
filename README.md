@@ -286,7 +286,11 @@ requirements/
 
 ## Roadmap
 
-- [ ] **Session memory**: Multi-turn conversation context using Alexa session attributes.
-- [ ] **Faster responses**: Use a smaller model (Llama 3.1 8B) for classification, keep 70B for conversation.
-- [ ] **Auto-deploy**: GitHub Actions workflow to deploy on merge to mainline.
-- [ ] **Calendar event confirmation**: Ask user before creating events from auto-detected plans.
+- [x] **Session memory**: Multi-turn conversation context using Alexa session attributes
+- [x] **Google Calendar integration**: Create events, query schedule, timezone-aware
+- [x] **Reprompt**: Keep the Alexa session alive between turns
+- [ ] **Faster responses**: Use a smaller model (Llama 3.1 8B) for classification, keep 70B for conversation
+- [ ] **Auto-deploy**: GitHub Actions workflow to deploy on merge to mainline
+- [ ] **Calendar event confirmation**: Ask user before creating events from auto-detected plans (requires session memory ✅)
+- [ ] **Privacy**: Per-user encryption for stored memory facts
+- [ ] **Calendar event deletion**: Remove events from Google Calendar via voice
